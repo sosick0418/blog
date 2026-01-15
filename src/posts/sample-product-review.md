@@ -2,6 +2,7 @@
 title: "삼성 갤럭시 버즈3 프로 리뷰: 최고의 노이즈 캔슬링 이어폰"
 description: "삼성 갤럭시 버즈3 프로의 음질, 노이즈 캔슬링, 배터리 수명을 직접 사용해보고 솔직하게 평가합니다."
 date: 2024-01-15
+category: electronics
 product:
   name: "삼성 갤럭시 버즈3 프로"
   price: 299000
