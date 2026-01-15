@@ -11,6 +11,18 @@ export default function(eleventyConfig) {
     return new Date(date).toISOString().split('T')[0];
   });
 
+  // Add Korean date format filter
+  eleventyConfig.addFilter("dateKorean", (date) => {
+    const d = new Date(date);
+    return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+  });
+
+  // Add number format filter for price display
+  eleventyConfig.addFilter("numberFormat", (num) => {
+    if (num === undefined || num === null) return '';
+    return num.toLocaleString('ko-KR');
+  });
+
   return {
     // Directory configuration
     dir: {

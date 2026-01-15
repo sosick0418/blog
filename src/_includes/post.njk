@@ -6,7 +6,7 @@ type: article
 <article class="post">
   <header class="post-header">
     <h1>{{ title }}</h1>
-    <time datetime="{{ page.date | dateToISO }}">{{ page.date | date: "%Y년 %m월 %d일" }}</time>
+    <time datetime="{{ page.date | dateToISO }}">{{ page.date | dateKorean }}</time>
   </header>
 
   {% if product %}
@@ -23,7 +23,7 @@ type: article
 
         {% if product.price %}
         <p class="product-price">
-          <strong>{{ product.price | number_format }}원</strong>
+          <strong>{{ product.price | numberFormat }}원</strong>
         </p>
         {% endif %}
 
