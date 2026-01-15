@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import AffiliateCTA from "./AffiliateCTA";
+import { slugify } from "@/data/products";
 
 interface Product {
   productId: string;
@@ -61,7 +62,7 @@ function StarRating({ rating }: { rating: number }) {
 export default function ProductCard({ product, variant = "default", index = 0 }: ProductCardProps) {
   const colors = categoryColors[product.category] || categoryColors.electronics;
   const categoryName = categoryNames[product.category] || product.category;
-  const slug = product.name.replace(/\s+/g, "-").toLowerCase();
+  const slug = slugify(product.name);
 
   if (variant === "featured") {
     return (
