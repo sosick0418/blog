@@ -28,3 +28,27 @@ services:
       # Mount project files for script execution
       - ./:/app
     working_dir: /app
+    depends_on:
+      - content-api
+
+  content-api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: coupang-blog-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GIT_BRANCH=${GIT_BRANCH:-main}
+    volumes:
+      # Mount project for git operations and data access
+      - ./:/project
+      # Git config for commits
+      - ~/.gitconfig:/root/.gitconfig:ro
+      - ~/.ssh:/root/.ssh:ro
+    working_dir: /project/api
+    command: ["node", "/project/api/src/index.js"]

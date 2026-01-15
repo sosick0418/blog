@@ -1,0 +1,281 @@
+{
+  "name": "Content API Pipeline",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 500],
+      "disabled": true,
+      "notes": "Daily at 9:00 AM. Enable when ready for production."
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "productId",
+              "value": "sample-001"
+            },
+            {
+              "name": "name",
+              "value": "테스트 제품"
+            },
+            {
+              "name": "category",
+              "value": "electronics"
+            },
+            {
+              "name": "affiliateUrl",
+              "value": "https://link.coupang.com/re/AFFSDP?lptag=TEST&pageKey=sample-001"
+            },
+            {
+              "name": "imageUrl",
+              "value": ""
+            }
+          ],
+          "number": [
+            {
+              "name": "price",
+              "value": 29900
+            },
+            {
+              "name": "rating",
+              "value": 4
+            }
+          ],
+          "boolean": [
+            {
+              "name": "autoDeploy",
+              "value": true
+            },
+            {
+              "name": "dryRun",
+              "value": false
+            }
+          ]
+        }
+      },
+      "id": "set-product-data",
+      "name": "Set Product Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [500, 400],
+      "notes": "Configure product data here.\n\nRequired fields:\n- productId: Coupang product ID\n- name: Product name (Korean)\n- price: Price in KRW\n- category: electronics | home | beauty\n- affiliateUrl: Coupang Partners affiliate link\n\nOptional:\n- imageUrl: Product image (auto-generated if empty)\n- rating: 1-5 stars\n- autoDeploy: Auto git push\n- dryRun: Skip git push for testing"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://content-api:3001/api/products/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "http-generate",
+      "name": "Generate Content via API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 400],
+      "notes": "Calls Content API to:\n1. Generate review content with LLM\n2. Add product to products.json\n3. Git commit and push (if autoDeploy=true)\n\nAPI endpoint: POST /api/products/generate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-success",
+              "leftValue": "={{ $json.body.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-success",
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [940, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract success response from API\nconst response = $input.first().json.body;\n\nreturn [{\n  json: {\n    status: 'success',\n    message: `Product created: ${response.product.name}`,\n    productId: response.product.productId,\n    productName: response.product.name,\n    category: response.product.category,\n    generated: response.generated,\n    deploy: response.deploy,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "success-handler",
+      "name": "Success Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1160, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract error response from API\nconst input = $input.first().json;\nlet errorCode = 'API_ERROR';\nlet errorMessage = 'Unknown error';\n\ntry {\n  if (input.body && input.body.error) {\n    errorCode = input.body.error;\n    errorMessage = input.body.message || errorCode;\n  } else if (input.statusCode !== 200 && input.statusCode !== 201) {\n    errorCode = `HTTP_${input.statusCode}`;\n    errorMessage = `API returned status ${input.statusCode}`;\n  }\n} catch (e) {\n  errorMessage = 'Failed to parse API response';\n}\n\nreturn [{\n  json: {\n    status: 'error',\n    errorCode: errorCode,\n    message: errorMessage,\n    statusCode: input.statusCode,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1160, 500]
+    },
+    {
+      "parameters": {},
+      "id": "success-complete",
+      "name": "Success Complete",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1380, 300],
+      "notes": "Success! Product generated and added to blog.\n\nIf autoDeploy was true:\n- Git committed and pushed\n- GitHub Actions will deploy to GitHub Pages\n\nCheck https://bichonhenry.cloud after ~2 minutes."
+    },
+    {
+      "parameters": {},
+      "id": "error-logged",
+      "name": "Error Logged",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1380, 500],
+      "notes": "Error occurred. Check execution details.\n\nCommon error codes:\n- VALIDATION_ERROR: Missing required fields\n- DUPLICATE_PRODUCT: Product ID already exists\n- GIT_PUSH_FAILED: Git push failed\n- HTTP_500: API server error"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Product Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Product Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Product Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Content via API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Content via API": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Success Handler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success Handler": {
+      "main": [
+        [
+          {
+            "node": "Success Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Error Logged",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "techblog-api-pipeline"
+  },
+  "tags": [
+    {
+      "name": "content-api",
+      "createdAt": "2026-01-15T00:00:00.000Z",
+      "updatedAt": "2026-01-15T00:00:00.000Z"
+    },
+    {
+      "name": "next-blog",
+      "createdAt": "2026-01-15T00:00:00.000Z",
+      "updatedAt": "2026-01-15T00:00:00.000Z"
+    }
+  ]
+}
