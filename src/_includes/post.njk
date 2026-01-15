@@ -1,0 +1,63 @@
+---
+layout: base.njk
+type: article
+---
+
+<article class="post">
+  <header class="post-header">
+    <h1>{{ title }}</h1>
+    <time datetime="{{ page.date | dateToISO }}">{{ page.date | date: "%Y년 %m월 %d일" }}</time>
+  </header>
+
+  {% if product %}
+  <section class="product-info">
+    <div class="product-card">
+      {% if product.image %}
+      <div class="product-image">
+        <img src="{{ product.image }}" alt="{{ product.name }}" loading="lazy">
+      </div>
+      {% endif %}
+
+      <div class="product-details">
+        <h2 class="product-name">{{ product.name }}</h2>
+
+        {% if product.price %}
+        <p class="product-price">
+          <strong>{{ product.price | number_format }}원</strong>
+        </p>
+        {% endif %}
+
+        {% if product.rating %}
+        <div class="product-rating">
+          <span class="rating-stars">
+            {% for i in range(1, 6) %}
+              {% if i <= product.rating %}★{% else %}☆{% endif %}
+            {% endfor %}
+          </span>
+          <span class="rating-value">({{ product.rating }}/5)</span>
+        </div>
+        {% endif %}
+
+        {% if product.affiliateLink %}
+        <a href="{{ product.affiliateLink }}" class="affiliate-link" target="_blank" rel="noopener sponsored">
+          쿠팡에서 보기
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="post-content">
+    {{ content | safe }}
+  </section>
+
+  {% if product and product.affiliateLink %}
+  <section class="cta-section">
+    <a href="{{ product.affiliateLink }}" class="cta-button" target="_blank" rel="noopener sponsored">
+      지금 구매하기
+    </a>
+    <p class="affiliate-disclosure">이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</p>
+  </section>
+  {% endif %}
+</article>
