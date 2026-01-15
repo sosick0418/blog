@@ -4,5 +4,8 @@
   "language": "ko",
   "locale": "ko_KR",
   "url": "",
-  "author": "Auto Blog"
+  "author": "Auto Blog",
+  "image": "/assets/og-default.jpg",
+  "twitter": "",
+  "type": "website"
 }
