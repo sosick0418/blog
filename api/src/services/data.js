@@ -141,9 +141,16 @@ export function getProductsByCategory(category) {
 
 /**
  * Create URL-friendly slug from product name
+ * Handles Korean characters and special characters like +
  * @param {string} name - Product name
  * @returns {string} Slug
  */
 export function slugify(name) {
-  return name.replace(/\s+/g, '-').toLowerCase();
+  return name
+    .replace(/[+]/g, '-')           // Replace + with -
+    .replace(/[^\w\s가-힣-]/g, '')   // Remove special chars except Korean
+    .replace(/\s+/g, '-')           // Replace spaces with -
+    .replace(/-+/g, '-')            // Replace multiple - with single -
+    .replace(/^-|-$/g, '')          // Remove leading/trailing -
+    .toLowerCase();
 }
