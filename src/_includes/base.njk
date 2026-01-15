@@ -36,6 +36,28 @@
     "inLanguage": "{{ site.language }}"
   }
   </script>
+
+  {% if type == "article" or (layout and "post" in layout) %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "{{ title }}",
+    "description": "{{ description or site.description }}",
+    "datePublished": "{{ page.date | dateToISO }}",
+    "dateModified": "{{ page.date | dateToISO }}",
+    "author": {
+      "@type": "Person",
+      "name": "{{ site.author }}"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "{{ site.title }}"
+    },
+    "inLanguage": "{{ site.language }}"
+  }
+  </script>
+  {% endif %}
 </head>
 <body>
   <header>
