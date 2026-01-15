@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-15)
 
 **Core value:** Generated content must be compelling and convert readers to affiliate clicks — without quality content, automation and SEO are worthless.
-**Current focus:** Phase 4 — Coupang Integration — COMPLETE
+**Current focus:** Phase 5 — LLM Content Pipeline — COMPLETE
 
 ## Current Position
 
-Phase: 4 of 8 (Coupang Integration) — COMPLETE
+Phase: 5 of 8 (LLM Content Pipeline) — COMPLETE
 Plan: 3 of 3 complete
 Status: Phase complete
-Last activity: 2026-01-15 — Phase 4 executed (parallel)
+Last activity: 2026-01-15 — Phase 5 executed (sequential)
 
-Progress: █████░░░░░ 50% (12/24 plans)
+Progress: ██████░░░░ 62.5% (15/24 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 15
 - Average duration: ~1.5 min
-- Total execution time: ~18 min
+- Total execution time: ~23 min
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: █████░░░░░ 50% (12/24 plans)
 | 2. SEO Infrastructure | 3 | ~4 min | ~1.3 min |
 | 3. Blog Template System | 3 | ~3 min | ~1 min |
 | 4. Coupang Integration | 3 | ~5 min | ~1.7 min |
+| 5. LLM Content Pipeline | 3 | ~5 min | ~1.7 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-03, 04-01, 04-02, 04-03 (parallel execution)
-- Trend: Fast (parallel agent execution)
+- Last 5 plans: 04-02, 04-03, 05-01, 05-02, 05-03 (sequential execution)
+- Trend: Fast (subagent context isolation)
 
 ## Accumulated Context
 
@@ -55,6 +56,9 @@ Recent decisions affecting current work:
 - ES modules for Coupang data files (04-01)
 - Manual product entry approach due to Coupang API restrictions (04-01)
 - Affiliate link format: link.coupang.com with partner trackingCode (04-01)
+- Google Gemini 2.5 Flash as primary LLM provider for free tier (05-01)
+- Korean prompt engineering with 친근하고 대화하듯 tone (05-02)
+- Graceful fallback to placeholder when LLM unavailable (05-03)
 
 ### Deferred Issues
 
@@ -70,6 +74,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-15 11:00
-Stopped at: Phase 4 complete, ready for Phase 5
+Last session: 2026-01-15 12:55
+Stopped at: Phase 5 complete, ready for Phase 6
 Resume file: None
