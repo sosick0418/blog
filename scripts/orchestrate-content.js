@@ -18,12 +18,21 @@
  *   --skip-git             Skip all git operations (for local testing)
  *   --no-llm               Skip LLM content generation
  *   --force                Overwrite existing files
+ *   --verbose              Enable detailed logging to stderr
  *   --help                 Show this help message
  *
  * Output:
  *   JSON result to stdout:
- *   - { "success": true, "file": "path/to/post.md", "commit": "abc123" }
- *   - { "success": false, "error": "error message" }
+ *   - { "success": true, "file": "path/to/post.md", "commit": "abc123", "timestamp": "ISO8601" }
+ *   - { "success": false, "error": "ERROR_CODE", "message": "detailed message", "timestamp": "ISO8601" }
+ *
+ * Error Codes:
+ *   - POST_GENERATION_FAILED: Failed to generate post content
+ *   - GIT_ADD_FAILED: Failed to stage file with git add
+ *   - GIT_COMMIT_FAILED: Failed to create git commit
+ *   - GIT_PUSH_FAILED: Failed to push to remote
+ *   - INVALID_INPUT: Invalid or missing input parameters
+ *   - FILE_READ_FAILED: Failed to read input file
  */
 
 import { execSync, spawn } from 'child_process';
@@ -52,7 +61,8 @@ function parseArgs(args) {
     skipGit: false,
     noLlm: false,
     force: false,
-    help: false
+    help: false,
+    verbose: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -76,6 +86,10 @@ function parseArgs(args) {
       case '--force':
       case '-f':
         options.force = true;
+        break;
+      case '--verbose':
+      case '-v':
+        options.verbose = true;
         break;
       case '--product-json':
         options.productJson = nextArg;
@@ -126,14 +140,35 @@ Options:
 
   --force                Overwrite existing post files
 
+  --verbose, -v          Enable detailed logging to stderr
+                         Useful for debugging without breaking JSON output
+
   --help                 Show this help message
 
 Output Format (JSON to stdout):
   Success:
-    { "success": true, "file": "src/posts/product-name.md", "commit": "abc123" }
+    {
+      "success": true,
+      "file": "src/posts/product-name.md",
+      "commit": "abc123",
+      "timestamp": "2026-01-15T09:00:00.000Z"
+    }
 
   Failure:
-    { "success": false, "error": "Error message" }
+    {
+      "success": false,
+      "error": "ERROR_CODE",
+      "message": "Detailed error message",
+      "timestamp": "2026-01-15T09:00:00.000Z"
+    }
+
+Error Codes:
+  POST_GENERATION_FAILED  - Failed to generate post content
+  GIT_ADD_FAILED          - Failed to stage file with git add
+  GIT_COMMIT_FAILED       - Failed to create git commit
+  GIT_PUSH_FAILED         - Failed to push to remote
+  INVALID_INPUT           - Invalid or missing input parameters
+  FILE_READ_FAILED        - Failed to read input file
 
 Environment Variables:
   GIT_BRANCH             Branch to push to (default: main)
@@ -149,18 +184,51 @@ Examples:
   # Test without any git operations
   node scripts/orchestrate-content.js --product-json '{"productId":"123","productName":"Test"}' --skip-git
 
+  # Verbose mode for debugging
+  node scripts/orchestrate-content.js --product-json '{"productId":"123","productName":"Test"}' --verbose
+
   # From file, skip LLM
   node scripts/orchestrate-content.js --file products.json --no-llm --skip-git
 `);
 }
 
 /**
- * Output JSON result
+ * Output JSON result with timestamp
  *
  * @param {object} result - Result object
  */
 function outputResult(result) {
-  console.log(JSON.stringify(result));
+  const output = {
+    ...result,
+    timestamp: new Date().toISOString()
+  };
+  console.log(JSON.stringify(output));
+}
+
+/**
+ * Output structured error result
+ *
+ * @param {string} errorCode - Error code (e.g., POST_GENERATION_FAILED)
+ * @param {string} message - Detailed error message
+ */
+function outputError(errorCode, message) {
+  outputResult({
+    success: false,
+    error: errorCode,
+    message: message
+  });
+}
+
+/**
+ * Verbose logger - only logs when verbose mode is enabled
+ *
+ * @param {string} message - Message to log
+ * @param {object} options - Options containing verbose flag
+ */
+function verboseLog(message, options) {
+  if (options && options.verbose) {
+    process.stderr.write(`[VERBOSE] ${message}\n`);
+  }
 }
 
 /**
@@ -266,37 +334,94 @@ async function generatePost(product, options) {
 }
 
 /**
- * Run git operations
+ * Run git add operation
+ *
+ * @param {string} filePath - Path to the file to stage
+ * @param {object} options - Options (verbose)
+ * @throws {object} Error object with code and message
+ */
+function gitAdd(filePath, options) {
+  try {
+    verboseLog(`Staging file: ${filePath}`, options);
+    runCommand(`git add "${filePath}"`);
+    verboseLog('File staged successfully', options);
+  } catch (error) {
+    const err = new Error(`Failed to stage file: ${error.message}`);
+    err.code = 'GIT_ADD_FAILED';
+    throw err;
+  }
+}
+
+/**
+ * Run git commit operation
+ *
+ * @param {string} productName - Product name for commit message
+ * @param {object} options - Options (verbose)
+ * @returns {string} Commit hash
+ * @throws {object} Error object with code and message
+ */
+function gitCommit(productName, options) {
+  try {
+    const commitMessage = `content: auto-generated post for ${productName}`;
+    verboseLog(`Creating commit: ${commitMessage}`, options);
+    runCommand(`git commit -m "${commitMessage}"`);
+    const commitHash = runCommand('git rev-parse --short HEAD');
+    verboseLog(`Commit created: ${commitHash}`, options);
+    return commitHash;
+  } catch (error) {
+    const err = new Error(`Failed to create commit: ${error.message}`);
+    err.code = 'GIT_COMMIT_FAILED';
+    throw err;
+  }
+}
+
+/**
+ * Run git push operation
+ *
+ * @param {object} options - Options (dryRun, verbose)
+ * @throws {object} Error object with code and message
+ */
+function gitPush(options) {
+  if (options.dryRun) {
+    process.stderr.write(`[Git] Dry-run: skipped push to origin/${GIT_BRANCH}\n`);
+    verboseLog('Push skipped due to --dry-run flag', options);
+    return;
+  }
+
+  try {
+    verboseLog(`Pushing to origin/${GIT_BRANCH}`, options);
+    runCommand(`git push origin ${GIT_BRANCH}`);
+    process.stderr.write(`[Git] Pushed to origin/${GIT_BRANCH}\n`);
+    verboseLog('Push completed successfully', options);
+  } catch (error) {
+    const err = new Error(`Failed to push to remote: ${error.message}`);
+    err.code = 'GIT_PUSH_FAILED';
+    throw err;
+  }
+}
+
+/**
+ * Run git operations with individual error handling
  *
  * @param {string} filePath - Path to the generated file
  * @param {string} productName - Product name for commit message
- * @param {object} options - Options (dryRun)
- * @returns {string|null} Commit hash or null if skipped
+ * @param {object} options - Options (dryRun, verbose)
+ * @returns {string} Commit hash
+ * @throws {object} Error object with code and message
  */
 function runGitOperations(filePath, productName, options) {
-  try {
-    // Stage the file
-    runCommand(`git add "${filePath}"`);
+  verboseLog('Starting git operations', options);
 
-    // Create commit
-    const commitMessage = `content: auto-generated post for ${productName}`;
-    runCommand(`git commit -m "${commitMessage}"`);
+  // Stage the file
+  gitAdd(filePath, options);
 
-    // Get commit hash
-    const commitHash = runCommand('git rev-parse --short HEAD');
+  // Create commit
+  const commitHash = gitCommit(productName, options);
 
-    // Push to remote (unless dry-run)
-    if (!options.dryRun) {
-      runCommand(`git push origin ${GIT_BRANCH}`);
-      process.stderr.write(`[Git] Pushed to origin/${GIT_BRANCH}\n`);
-    } else {
-      process.stderr.write(`[Git] Dry-run: skipped push to origin/${GIT_BRANCH}\n`);
-    }
+  // Push to remote
+  gitPush(options);
 
-    return commitHash;
-  } catch (error) {
-    throw new Error(`Git operation failed: ${error.message}`);
-  }
+  return commitHash;
 }
 
 /**
@@ -315,10 +440,7 @@ async function main() {
   // Validate input
   if (!options.productJson && !options.file) {
     showHelp();
-    outputResult({
-      success: false,
-      error: 'Either --product-json or --file is required'
-    });
+    outputError('INVALID_INPUT', 'Either --product-json or --file is required');
     process.exit(1);
   }
 
@@ -327,12 +449,11 @@ async function main() {
   // Parse product data
   if (options.productJson) {
     try {
+      verboseLog('Parsing product JSON from command line', options);
       product = JSON.parse(options.productJson);
+      verboseLog(`Parsed product: ${product.productName}`, options);
     } catch (error) {
-      outputResult({
-        success: false,
-        error: `Invalid JSON: ${error.message}`
-      });
+      outputError('INVALID_INPUT', `Invalid JSON: ${error.message}`);
       process.exit(1);
     }
   } else if (options.file) {
@@ -341,6 +462,7 @@ async function main() {
         ? options.file
         : path.join(process.cwd(), options.file);
 
+      verboseLog(`Reading product data from file: ${filePath}`, options);
       const content = fs.readFileSync(filePath, 'utf8');
       const data = JSON.parse(content);
 
@@ -352,74 +474,70 @@ async function main() {
       } else {
         product = data; // Assume it's a single product object
       }
+      verboseLog(`Loaded product: ${product.productName}`, options);
     } catch (error) {
-      outputResult({
-        success: false,
-        error: `Failed to read file: ${error.message}`
-      });
+      outputError('FILE_READ_FAILED', `Failed to read file: ${error.message}`);
       process.exit(1);
     }
   }
 
   // Validate product data
   if (!product.productId || !product.productName) {
-    outputResult({
-      success: false,
-      error: 'Product must have productId and productName'
-    });
+    outputError('INVALID_INPUT', 'Product must have productId and productName');
     process.exit(1);
   }
 
   process.stderr.write(`[Orchestrator] Processing: ${product.productName}\n`);
+  verboseLog(`Options: dryRun=${options.dryRun}, skipGit=${options.skipGit}, noLlm=${options.noLlm}`, options);
 
+  let filePath = null;
+  let commitHash = null;
+
+  // Step 1: Generate the post
   try {
-    // Generate the post
-    const filePath = await generatePost(product, options);
+    verboseLog('Starting post generation', options);
+    filePath = await generatePost(product, options);
 
     if (!filePath) {
-      outputResult({
-        success: false,
-        error: 'Post generation failed'
-      });
+      outputError('POST_GENERATION_FAILED', 'Post generation returned no file path');
       process.exit(1);
     }
-
-    // Determine relative path for output
-    const relativePath = filePath.startsWith(PROJECT_ROOT)
-      ? filePath.substring(PROJECT_ROOT.length + 1)
-      : filePath;
-
-    let commitHash = null;
-
-    // Run git operations
-    if (!options.skipGit) {
-      commitHash = runGitOperations(filePath, product.productName, options);
-      process.stderr.write(`[Orchestrator] Committed: ${commitHash}\n`);
-    } else {
-      process.stderr.write(`[Orchestrator] Skipped git operations\n`);
-    }
-
-    // Output success result
-    outputResult({
-      success: true,
-      file: relativePath,
-      commit: commitHash
-    });
-
+    verboseLog(`Post generated: ${filePath}`, options);
   } catch (error) {
-    outputResult({
-      success: false,
-      error: error.message
-    });
+    outputError('POST_GENERATION_FAILED', `Failed to generate post: ${error.message}`);
     process.exit(1);
   }
+
+  // Determine relative path for output
+  const relativePath = filePath.startsWith(PROJECT_ROOT)
+    ? filePath.substring(PROJECT_ROOT.length + 1)
+    : filePath;
+
+  // Step 2: Run git operations (if not skipped)
+  if (!options.skipGit) {
+    try {
+      commitHash = runGitOperations(filePath, product.productName, options);
+      process.stderr.write(`[Orchestrator] Committed: ${commitHash}\n`);
+    } catch (error) {
+      // Error has a code property set by git functions
+      outputError(error.code || 'GIT_ERROR', error.message);
+      process.exit(1);
+    }
+  } else {
+    process.stderr.write(`[Orchestrator] Skipped git operations\n`);
+    verboseLog('Git operations skipped due to --skip-git flag', options);
+  }
+
+  // Output success result
+  outputResult({
+    success: true,
+    file: relativePath,
+    commit: commitHash
+  });
 }
 
 // Run main
 main().catch(error => {
-  outputResult({
-    success: false,
-    error: `Unexpected error: ${error.message}`
-  });
+  outputError('UNEXPECTED_ERROR', `Unexpected error: ${error.message}`);
   process.exit(1);
 });
