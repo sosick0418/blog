@@ -16,3 +16,6 @@ _site/
 # Environment files
 .env
 .env.local
+
+# Claude auto-generated files
+src/CLAUDE.md
