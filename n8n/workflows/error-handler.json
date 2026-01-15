@@ -1,0 +1,191 @@
+{
+  "name": "Content Pipeline Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "error-trigger-1a2b3c4d",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "workflowName",
+              "value": "={{ $json.workflow.name }}"
+            },
+            {
+              "name": "errorMessage",
+              "value": "={{ $json.execution.error.message }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "executionId",
+              "value": "={{ $json.execution.id }}"
+            },
+            {
+              "name": "workflowId",
+              "value": "={{ $json.workflow.id }}"
+            }
+          ]
+        }
+      },
+      "id": "extract-error-info-2b3c4d5e",
+      "name": "Extract Error Info",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format error log entry for logging and debugging\n// This node creates a structured log entry that can be viewed in n8n executions\n\nconst input = $input.first().json;\n\nconst logEntry = {\n  level: 'ERROR',\n  source: 'n8n-error-handler',\n  workflow: input.workflowName || 'Unknown',\n  workflowId: input.workflowId || 'Unknown',\n  executionId: input.executionId || 'Unknown',\n  error: input.errorMessage || 'No error message',\n  timestamp: input.timestamp || new Date().toISOString(),\n  formattedMessage: `[ERROR] ${input.timestamp} - Workflow \"${input.workflowName}\" failed: ${input.errorMessage}`\n};\n\n// Log to console (visible in n8n execution details)\nconsole.log(logEntry.formattedMessage);\n\nreturn [{ json: logEntry }];"
+      },
+      "id": "format-log-entry-3c4d5e6f",
+      "name": "Format Log Entry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://your-webhook-url.com/notify",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.formattedMessage }}"
+            },
+            {
+              "name": "level",
+              "value": "={{ $json.level }}"
+            },
+            {
+              "name": "workflow",
+              "value": "={{ $json.workflow }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json.timestamp }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "webhook-notification-4d5e6f7g",
+      "name": "Webhook Notification (Disabled)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        300
+      ],
+      "disabled": true,
+      "notes": "Enable this node and configure the URL for error notifications.\nYou can use services like:\n- Slack incoming webhooks\n- Discord webhooks\n- Custom notification endpoints\n- IFTTT webhooks\n\nTo enable:\n1. Click on this node\n2. Enable the node (toggle in settings)\n3. Replace URL with your webhook endpoint\n4. Adjust body parameters as needed for your service"
+    },
+    {
+      "parameters": {},
+      "id": "noop-end-5e6f7g8h",
+      "name": "Error Logged",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ],
+      "notes": "Error has been logged. Check n8n executions view for details.\n\nTo add notifications:\n1. Enable the 'Webhook Notification' node above\n2. Configure your preferred notification service"
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Error Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Error Info": {
+      "main": [
+        [
+          {
+            "node": "Format Log Entry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Log Entry": {
+      "main": [
+        [
+          {
+            "node": "Webhook Notification (Disabled)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Notification (Disabled)": {
+      "main": [
+        [
+          {
+            "node": "Error Logged",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "coupang-affiliate-blog"
+  },
+  "tags": [
+    {
+      "name": "error-handling",
+      "createdAt": "2026-01-15T00:00:00.000Z",
+      "updatedAt": "2026-01-15T00:00:00.000Z"
+    },
+    {
+      "name": "coupang",
+      "createdAt": "2026-01-15T00:00:00.000Z",
+      "updatedAt": "2026-01-15T00:00:00.000Z"
+    }
+  ]
+}
