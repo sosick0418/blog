@@ -305,8 +305,23 @@ Options:
   --category <cat>   Set category for the post (default: general)
   --subid <id>       Set tracking subId for affiliate links
 
+  --no-llm           Skip LLM content generation, use placeholder template
+                     Useful for testing or when API is rate-limited
+
   --force            Overwrite existing files without prompting
   --help             Show this help message
+
+LLM Content Generation:
+  By default, the script generates product review content using Google Gemini AI.
+
+  Requirements:
+    - Set GEMINI_API_KEY environment variable
+    - See .env.example for configuration
+
+  Fallback behavior:
+    - If GEMINI_API_KEY is not set, placeholder content is used
+    - If API call fails, placeholder content is used with warning
+    - Use --no-llm to explicitly skip LLM generation
 
 Examples:
   # Generate single product post
@@ -317,6 +332,9 @@ Examples:
 
   # Force overwrite
   node scripts/generate-post.js --file products.json --force
+
+  # Skip LLM generation (use placeholders)
+  node scripts/generate-post.js --product 12345 --name "Test Product" --no-llm
 
 JSON File Format:
   [
