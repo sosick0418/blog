@@ -32,7 +32,7 @@
         500
       ],
       "disabled": true,
-      "notes": "Scheduled for daily at 9:00 AM (0 9 * * *).\nKeep disabled until Phase 8 E2E testing is complete.\nTo activate: Enable this trigger and set workflow to active."
+      "notes": "Scheduled for daily at 9:00 AM (0 9 * * *).\nPhase 8 E2E testing complete - ready for activation.\nTo activate: Enable this trigger and set workflow to active in n8n UI."
     },
     {
       "parameters": {
@@ -70,7 +70,7 @@
     },
     {
       "parameters": {
-        "command": "=cd /app && node scripts/orchestrate-content.js --product-json '{{ JSON.stringify($json) }}' --dry-run"
+        "command": "=cd /app && node scripts/orchestrate-content.js --product-json '{{ JSON.stringify($json) }}'"
       },
       "id": "5e6f7g8h-9i0j-1k2l-3m4n-execute-command",
       "name": "Generate Content",
@@ -80,7 +80,7 @@
         720,
         400
       ],
-      "notes": "Production mode with --dry-run for safety until Phase 8 E2E testing.\n\nTo enable full production:\n1. Remove --dry-run flag (enables git push)\n2. Set GEMINI_API_KEY environment variable for LLM\n3. Enable Schedule Trigger\n4. Set workflow to active\n\nError codes returned by script:\n- POST_GENERATION_FAILED\n- GIT_ADD_FAILED\n- GIT_COMMIT_FAILED\n- GIT_PUSH_FAILED"
+      "notes": "PRODUCTION MODE - Full git push enabled.\n\nWorkflow is production-ready as of Phase 8 E2E testing.\n\nTo activate automated posting:\n1. Set GEMINI_API_KEY environment variable for LLM\n2. Enable Schedule Trigger node\n3. Set workflow to active in n8n UI\n\nError codes returned by script:\n- POST_GENERATION_FAILED\n- GIT_ADD_FAILED\n- GIT_COMMIT_FAILED\n- GIT_PUSH_FAILED"
     },
     {
       "parameters": {
@@ -149,7 +149,7 @@
         1380,
         300
       ],
-      "notes": "Success - Post generated and committed.\n\nThe post file has been created and (if not --dry-run) committed and pushed to the repository.\nGitHub Actions will handle deployment to GitHub Pages."
+      "notes": "Success - Post generated, committed, and pushed.\n\nThe post file has been created, committed, and pushed to the repository.\nGitHub Actions will handle deployment to GitHub Pages."
     },
     {
       "parameters": {},
