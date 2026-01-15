@@ -17,7 +17,8 @@
         "rule": {
           "interval": [
             {
-              "triggerAtHour": 9
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
             }
           ]
         }
@@ -30,7 +31,8 @@
         240,
         500
       ],
-      "disabled": true
+      "disabled": true,
+      "notes": "Scheduled for daily at 9:00 AM (0 9 * * *).\nKeep disabled until Phase 8 E2E testing is complete.\nTo activate: Enable this trigger and set workflow to active."
     },
     {
       "parameters": {
@@ -68,7 +70,7 @@
     },
     {
       "parameters": {
-        "command": "=cd /app && node scripts/orchestrate-content.js --product-json '{{ JSON.stringify($json) }}' --skip-git --no-llm"
+        "command": "=cd /app && node scripts/orchestrate-content.js --product-json '{{ JSON.stringify($json) }}' --dry-run"
       },
       "id": "5e6f7g8h-9i0j-1k2l-3m4n-execute-command",
       "name": "Generate Content",
@@ -78,7 +80,7 @@
         720,
         400
       ],
-      "notes": "Note: --skip-git for initial setup. Remove when ready for production.\n--no-llm for testing. Remove when LLM is configured."
+      "notes": "Production mode with --dry-run for safety until Phase 8 E2E testing.\n\nTo enable full production:\n1. Remove --dry-run flag (enables git push)\n2. Set GEMINI_API_KEY environment variable for LLM\n3. Enable Schedule Trigger\n4. Set workflow to active\n\nError codes returned by script:\n- POST_GENERATION_FAILED\n- GIT_ADD_FAILED\n- GIT_COMMIT_FAILED\n- GIT_PUSH_FAILED"
     },
     {
       "parameters": {
@@ -113,7 +115,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Success handler - Placeholder for notification in Plan 03\n// This node will send success notifications (Slack, Discord, etc.)\n\nconst result = JSON.parse($input.first().json.stdout);\n\nreturn [{\n  json: {\n    status: 'success',\n    message: `Successfully generated post: ${result.file}`,\n    file: result.file,\n    commit: result.commit,\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// Success handler - Process successful content generation\n// Parses the JSON output from orchestrate-content.js\n\nconst result = JSON.parse($input.first().json.stdout);\n\nreturn [{\n  json: {\n    status: 'success',\n    message: `Successfully generated post: ${result.file}`,\n    file: result.file,\n    commit: result.commit,\n    timestamp: result.timestamp || new Date().toISOString()\n  }\n}];"
       },
       "id": "7g8h9i0j-1k2l-3m4n-5o6p-success-handler",
       "name": "Success Handler",
@@ -126,7 +128,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Error handler - Placeholder for error handling in Plan 03\n// This node will handle errors, send alerts, retry logic, etc.\n\nconst input = $input.first().json;\nlet errorMessage = 'Unknown error';\n\ntry {\n  if (input.stdout) {\n    const result = JSON.parse(input.stdout);\n    errorMessage = result.error || 'Unknown error';\n  } else if (input.stderr) {\n    errorMessage = input.stderr;\n  }\n} catch (e) {\n  errorMessage = input.stderr || input.stdout || 'Failed to parse error';\n}\n\nreturn [{\n  json: {\n    status: 'error',\n    message: errorMessage,\n    exitCode: input.exitCode,\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// Error handler - Process and categorize errors from orchestrate-content.js\n// Extracts structured error codes for routing and logging\n\nconst input = $input.first().json;\nlet errorCode = 'UNKNOWN_ERROR';\nlet errorMessage = 'Unknown error';\nlet timestamp = new Date().toISOString();\n\ntry {\n  if (input.stdout) {\n    const result = JSON.parse(input.stdout);\n    errorCode = result.error || 'UNKNOWN_ERROR';\n    errorMessage = result.message || result.error || 'Unknown error';\n    timestamp = result.timestamp || timestamp;\n  } else if (input.stderr) {\n    errorMessage = input.stderr;\n  }\n} catch (e) {\n  errorMessage = input.stderr || input.stdout || 'Failed to parse error';\n}\n\n// Categorize error for potential retry logic\nconst isRetryable = ['GIT_PUSH_FAILED', 'POST_GENERATION_FAILED'].includes(errorCode);\n\nreturn [{\n  json: {\n    status: 'error',\n    errorCode: errorCode,\n    message: errorMessage,\n    exitCode: input.exitCode,\n    timestamp: timestamp,\n    isRetryable: isRetryable\n  }\n}];"
       },
       "id": "8h9i0j1k-2l3m-4n5o-6p7q-error-handler",
       "name": "Error Handler",
@@ -136,6 +138,30 @@
         1160,
         500
       ]
+    },
+    {
+      "parameters": {},
+      "id": "9i0j1k2l-3m4n-5o6p-7q8r-success-noop",
+      "name": "Success Complete",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        300
+      ],
+      "notes": "Success - Post generated and committed.\n\nThe post file has been created and (if not --dry-run) committed and pushed to the repository.\nGitHub Actions will handle deployment to GitHub Pages."
+    },
+    {
+      "parameters": {},
+      "id": "0j1k2l3m-4n5o-6p7q-8r9s-error-noop",
+      "name": "Error Logged",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        500
+      ],
+      "notes": "Error - Check n8n executions for details.\n\nError codes:\n- POST_GENERATION_FAILED: LLM or template issue\n- GIT_ADD_FAILED: File staging issue\n- GIT_COMMIT_FAILED: Commit creation issue\n- GIT_PUSH_FAILED: Push to remote issue\n\nCheck the error-handler workflow for centralized error logging."
     }
   ],
   "connections": {
@@ -200,13 +226,35 @@
           }
         ]
       ]
+    },
+    "Success Handler": {
+      "main": [
+        [
+          {
+            "node": "Success Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Error Logged",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "2",
+  "versionId": "3",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "coupang-affiliate-blog"
