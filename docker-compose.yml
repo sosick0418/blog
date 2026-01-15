@@ -1,0 +1,30 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: coupang-blog-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Authentication
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+      # Timezone
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-Asia/Seoul}
+      - TZ=${GENERIC_TIMEZONE:-Asia/Seoul}
+      # Enable Execute Command node for running scripts
+      - N8N_NODES_INCLUDE=n8n-nodes-base.executeCommand
+      # Encryption key for credentials
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      # Pass through environment variables for scripts
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
+      - LLM_MODEL=${LLM_MODEL:-gemini-2.5-flash}
+      - COUPANG_PARTNER_ID=${COUPANG_PARTNER_ID}
+    volumes:
+      # Persist n8n data
+      - ./n8n-data:/home/node/.n8n
+      # Mount project files for script execution
+      - ./:/app
+    working_dir: /app
