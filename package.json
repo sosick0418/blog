@@ -4,8 +4,9 @@
   "description": "Coupang affiliate product review blog",
   "main": "index.js",
   "scripts": {
-    "build": "npx @11ty/eleventy",
-    "serve": "npx @11ty/eleventy --serve"
+    "dev": "eleventy --serve",
+    "build": "eleventy",
+    "clean": "rm -rf _site"
   },
   "keywords": [],
   "author": "",
