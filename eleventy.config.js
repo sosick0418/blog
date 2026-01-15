@@ -6,6 +6,11 @@ export default function(eleventyConfig) {
   // Passthrough copy for static assets (when added later)
   eleventyConfig.addPassthroughCopy("src/assets");
 
+  // Add dateToISO filter for sitemap
+  eleventyConfig.addFilter("dateToISO", (date) => {
+    return new Date(date).toISOString().split('T')[0];
+  });
+
   return {
     // Directory configuration
     dir: {
