@@ -1,0 +1,71 @@
+{
+  "name": "Coupang Content Pipeline",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1a2b3c4d-5e6f-7g8h-9i0j-manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "2b3c4d5e-6f7g-8h9i-0j1k-schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        500
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Content generation will be added in Plan 02\n// This placeholder node shows where the pipeline logic will go\n\n// Expected inputs:\n// - Product data from Coupang (via product list or search)\n// - Generation parameters (category, count, etc.)\n\n// Expected outputs:\n// - Generated blog post files\n// - Git commit trigger\n\nreturn [{\n  json: {\n    status: 'placeholder',\n    message: 'Content generation workflow not yet configured',\n    nextStep: 'Implement in Plan 06-02'\n  }\n}];"
+      },
+      "id": "3c4d5e6f-7g8h-9i0j-1k2l-code-node",
+      "name": "Content Generation Placeholder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        400
+      ]
+    }
+  ],
+  "connections": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "coupang-affiliate-blog"
+  },
+  "tags": [
+    {
+      "name": "coupang",
+      "createdAt": "2026-01-15T00:00:00.000Z",
+      "updatedAt": "2026-01-15T00:00:00.000Z"
+    },
+    {
+      "name": "content-pipeline",
+      "createdAt": "2026-01-15T00:00:00.000Z",
+      "updatedAt": "2026-01-15T00:00:00.000Z"
+    }
+  ]
+}
