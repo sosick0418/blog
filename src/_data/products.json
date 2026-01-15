@@ -1,0 +1,44 @@
+{
+  "products": [
+    {
+      "productId": "7628154817",
+      "name": "삼성 갤럭시 버즈2 프로 무선 이어폰",
+      "price": 159000,
+      "imageUrl": "/images/products/galaxy-buds2-pro.jpg",
+      "category": "electronics",
+      "description": "삼성 프리미엄 무선 이어폰, ANC 노이즈캔슬링, 24비트 Hi-Fi 사운드"
+    },
+    {
+      "productId": "6912458732",
+      "name": "애플 에어팟 프로 2세대",
+      "price": 329000,
+      "imageUrl": "/images/products/airpods-pro-2.jpg",
+      "category": "electronics",
+      "description": "액티브 노이즈 캔슬링, 적응형 투명 모드, 공간 음향"
+    },
+    {
+      "productId": "8234567891",
+      "name": "다이슨 V15 디텍트 무선청소기",
+      "price": 1190000,
+      "imageUrl": "/images/products/dyson-v15.jpg",
+      "category": "home",
+      "description": "레이저 먼지 감지, 피조전기 센서, 최대 60분 사용"
+    },
+    {
+      "productId": "5467123890",
+      "name": "LG 퓨리케어 공기청정기",
+      "price": 489000,
+      "imageUrl": "/images/products/lg-puricare.jpg",
+      "category": "home",
+      "description": "360도 청정, 스마트 인버터 모터, 초미세먼지 99.9% 제거"
+    },
+    {
+      "productId": "3892156478",
+      "name": "설화수 윤조에센스 90ml",
+      "price": 125000,
+      "imageUrl": "/images/products/sulwhasoo-essence.jpg",
+      "category": "beauty",
+      "description": "한방 발효 에센스, 피부결 개선, 윤기 부여"
+    }
+  ]
+}
