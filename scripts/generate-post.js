@@ -31,6 +31,9 @@ const __dirname = path.dirname(__filename);
 // Import Coupang modules
 import { generateAffiliateLink } from '../src/_data/coupang/affiliate.js';
 
+// Import LLM modules
+import { generateReview, isConfigured } from '../src/_data/llm/index.js';
+
 // Configuration
 const POSTS_DIR = path.join(__dirname, '..', 'src', 'posts');
 
@@ -94,7 +97,7 @@ product:
 }
 
 /**
- * Generate placeholder content structure for LLM to fill
+ * Generate placeholder content structure (used when LLM is disabled or unavailable)
  *
  * @param {object} product - Product data
  * @returns {string} Markdown content with placeholders
@@ -159,15 +162,56 @@ function generateContentPlaceholder(product) {
 }
 
 /**
+ * Generate content for blog post (either LLM-generated or placeholder)
+ *
+ * @param {object} product - Product data
+ * @param {object} options - Generation options
+ * @returns {Promise<string>} Markdown content
+ */
+async function generateContent(product, options = {}) {
+  const { productName, productPrice, category } = product;
+
+  // Skip LLM if --no-llm flag is set
+  if (options.noLlm) {
+    console.log(`[LLM] Skipped: --no-llm flag set`);
+    return generateContentPlaceholder(product);
+  }
+
+  // Skip LLM if API is not configured
+  if (!isConfigured()) {
+    console.log(`[LLM] Skipped: API not configured`);
+    return generateContentPlaceholder(product);
+  }
+
+  // Try to generate LLM content
+  try {
+    console.log(`[LLM] Generating content for: ${productName}`);
+
+    const llmProduct = {
+      name: productName,
+      price: productPrice || 0,
+      category: category || 'general',
+    };
+
+    const content = await generateReview(llmProduct);
+    console.log(`[LLM] Content generated successfully`);
+    return content;
+  } catch (error) {
+    console.log(`[LLM] Error: ${error.message}, using placeholder`);
+    return generateContentPlaceholder(product);
+  }
+}
+
+/**
  * Generate complete markdown post content
  *
  * @param {object} product - Product data
  * @param {object} options - Generation options
- * @returns {string} Complete markdown content
+ * @returns {Promise<string>} Complete markdown content
  */
-function generatePostContent(product, options = {}) {
+async function generatePostContent(product, options = {}) {
   const frontmatter = generateFrontmatter(product, options);
-  const content = generateContentPlaceholder(product);
+  const content = await generateContent(product, options);
 
   return `${frontmatter}\n${content}`;
 }
@@ -177,9 +221,9 @@ function generatePostContent(product, options = {}) {
  *
  * @param {object} product - Product data
  * @param {object} options - Generation options
- * @returns {string} Path to written file
+ * @returns {Promise<string|null>} Path to written file
  */
-function writePostFile(product, options = {}) {
+async function writePostFile(product, options = {}) {
   const { productName, productId } = product;
   const slug = slugify(productName) || `product-${productId}`;
   const filename = `${slug}.md`;
@@ -198,7 +242,7 @@ function writePostFile(product, options = {}) {
   }
 
   // Generate and write content
-  const content = generatePostContent(product, options);
+  const content = await generatePostContent(product, options);
   fs.writeFileSync(filepath, content, 'utf8');
 
   console.log(`[Success] Generated post: ${filepath}`);
@@ -297,7 +341,8 @@ JSON File Format:
 function parseArgs(args) {
   const options = {
     force: false,
-    category: 'general'
+    category: 'general',
+    noLlm: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -312,6 +357,9 @@ function parseArgs(args) {
       case '--force':
       case '-f':
         options.force = true;
+        break;
+      case '--no-llm':
+        options.noLlm = true;
         break;
       case '--product':
         options.productId = nextArg;
@@ -423,10 +471,11 @@ async function main() {
     }
 
     // Generate post
-    const result = writePostFile(product, {
+    const result = await writePostFile(product, {
       force: options.force,
       category: product.category || options.category,
-      subId: options.subId
+      subId: options.subId,
+      noLlm: options.noLlm
     });
 
     if (result) {
