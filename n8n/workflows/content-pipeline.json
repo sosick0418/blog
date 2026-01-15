@@ -34,24 +34,179 @@
     },
     {
       "parameters": {
-        "jsCode": "// Content generation will be added in Plan 02\n// This placeholder node shows where the pipeline logic will go\n\n// Expected inputs:\n// - Product data from Coupang (via product list or search)\n// - Generation parameters (category, count, etc.)\n\n// Expected outputs:\n// - Generated blog post files\n// - Git commit trigger\n\nreturn [{\n  json: {\n    status: 'placeholder',\n    message: 'Content generation workflow not yet configured',\n    nextStep: 'Implement in Plan 06-02'\n  }\n}];"
+        "values": {
+          "string": [
+            {
+              "name": "productId",
+              "value": "sample-001"
+            },
+            {
+              "name": "productName",
+              "value": "테스트 제품"
+            },
+            {
+              "name": "category",
+              "value": "general"
+            }
+          ],
+          "number": [
+            {
+              "name": "productPrice",
+              "value": 29900
+            }
+          ]
+        }
       },
-      "id": "3c4d5e6f-7g8h-9i0j-1k2l-code-node",
-      "name": "Content Generation Placeholder",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "4d5e6f7g-8h9i-0j1k-2l3m-set-product",
+      "name": "Set Product Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
         500,
         400
       ]
+    },
+    {
+      "parameters": {
+        "command": "=cd /app && node scripts/orchestrate-content.js --product-json '{{ JSON.stringify($json) }}' --skip-git --no-llm"
+      },
+      "id": "5e6f7g8h-9i0j-1k2l-3m4n-execute-command",
+      "name": "Generate Content",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        720,
+        400
+      ],
+      "notes": "Note: --skip-git for initial setup. Remove when ready for production.\n--no-llm for testing. Remove when LLM is configured."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-success-check",
+              "leftValue": "={{ $json.stdout }}",
+              "rightValue": "\"success\":true",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "6f7g8h9i-0j1k-2l3m-4n5o-if-success",
+      "name": "Check Result",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Success handler - Placeholder for notification in Plan 03\n// This node will send success notifications (Slack, Discord, etc.)\n\nconst result = JSON.parse($input.first().json.stdout);\n\nreturn [{\n  json: {\n    status: 'success',\n    message: `Successfully generated post: ${result.file}`,\n    file: result.file,\n    commit: result.commit,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "7g8h9i0j-1k2l-3m4n-5o6p-success-handler",
+      "name": "Success Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error handler - Placeholder for error handling in Plan 03\n// This node will handle errors, send alerts, retry logic, etc.\n\nconst input = $input.first().json;\nlet errorMessage = 'Unknown error';\n\ntry {\n  if (input.stdout) {\n    const result = JSON.parse(input.stdout);\n    errorMessage = result.error || 'Unknown error';\n  } else if (input.stderr) {\n    errorMessage = input.stderr;\n  }\n} catch (e) {\n  errorMessage = input.stderr || input.stdout || 'Failed to parse error';\n}\n\nreturn [{\n  json: {\n    status: 'error',\n    message: errorMessage,\n    exitCode: input.exitCode,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "8h9i0j1k-2l3m-4n5o-6p7q-error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        500
+      ]
     }
   ],
-  "connections": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Product Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Product Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Product Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Content": {
+      "main": [
+        [
+          {
+            "node": "Check Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Result": {
+      "main": [
+        [
+          {
+            "node": "Success Handler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "1",
+  "versionId": "2",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "coupang-affiliate-blog"
