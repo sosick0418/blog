@@ -6,6 +6,9 @@ export default function(eleventyConfig) {
   // Passthrough copy for static assets (when added later)
   eleventyConfig.addPassthroughCopy("src/assets");
 
+  // Copy CNAME file for GitHub Pages custom domain
+  eleventyConfig.addPassthroughCopy("src/CNAME");
+
   // Add dateToISO filter for sitemap
   eleventyConfig.addFilter("dateToISO", (date) => {
     return new Date(date).toISOString().split('T')[0];
