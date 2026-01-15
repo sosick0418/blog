@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "eleventy --serve",
     "build": "eleventy",
-    "clean": "rm -rf _site"
+    "clean": "rm -rf _site",
+    "generate:post": "node scripts/generate-post.js"
   },
   "keywords": [],
   "author": "",
