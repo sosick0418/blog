@@ -8,6 +8,7 @@
     "build": "eleventy",
     "clean": "rm -rf _site",
     "generate:post": "node scripts/generate-post.js",
+    "orchestrate": "node scripts/orchestrate-content.js",
     "n8n:start": "docker-compose up -d",
     "n8n:stop": "docker-compose down",
     "n8n:logs": "docker-compose logs -f n8n"
