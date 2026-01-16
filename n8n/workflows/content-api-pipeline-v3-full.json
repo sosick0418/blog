@@ -1,0 +1,359 @@
+{
+  "name": "Content Pipeline v3 (AI + Image Scraping)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 400]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 600],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "productId",
+              "value": ""
+            },
+            {
+              "name": "name",
+              "value": ""
+            },
+            {
+              "name": "category",
+              "value": "electronics"
+            },
+            {
+              "name": "affiliateUrl",
+              "value": ""
+            },
+            {
+              "name": "productFeatures",
+              "value": ""
+            }
+          ],
+          "number": [
+            {
+              "name": "price",
+              "value": 0
+            },
+            {
+              "name": "rating",
+              "value": 4.5
+            }
+          ],
+          "boolean": [
+            {
+              "name": "autoDeploy",
+              "value": true
+            },
+            {
+              "name": "dryRun",
+              "value": false
+            },
+            {
+              "name": "fetchImage",
+              "value": true
+            }
+          ]
+        }
+      },
+      "id": "set-product-data",
+      "name": "📝 제품 정보 입력",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [420, 500],
+      "notes": "=== 제품 정보 입력 ===\n\n1. productId: 쿠팡 상품 ID (URL에서 추출)\n2. name: 제품명 (한글)\n3. category: electronics | home | beauty\n4. affiliateUrl: 쿠팡 파트너스 링크\n5. price: 가격 (숫자만)\n6. productFeatures: 주요 특징 (콤마로 구분)\n7. rating: 평점 (1-5, 소수점 가능)\n8. fetchImage: 이미지 자동 가져오기 (true/false)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-fetch-image",
+              "leftValue": "={{ $json.fetchImage }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-fetch-image",
+      "name": "이미지 가져오기?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [640, 500]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.affiliateUrl }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "fetch-coupang-page",
+      "name": "🔍 쿠팡 페이지 가져오기",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 400],
+      "continueOnFail": true,
+      "notes": "쿠팡 affiliate URL에서 상품 페이지 HTML을 가져옵니다.\n실패해도 계속 진행됩니다."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract image URL from Coupang page HTML\nconst input = $input.first().json;\nconst originalData = $('📝 제품 정보 입력').first().json;\nlet imageUrl = '';\n\ntry {\n  const html = input.body || '';\n  \n  // Try multiple patterns to find product image\n  const patterns = [\n    // Open Graph image\n    /<meta\\s+property=\"og:image\"\\s+content=\"([^\"]+)\"/i,\n    /<meta\\s+content=\"([^\"]+)\"\\s+property=\"og:image\"/i,\n    // Product image in data\n    /\"imageUrl\"\\s*:\\s*\"([^\"]+coupangcdn[^\"]+)\"/i,\n    // Main product image\n    /class=\"prod-image\"[^>]*src=\"([^\"]+)\"/i,\n    // Thumbnail\n    /thumbnail[^>]*src=\"([^\"]+coupangcdn[^\"]+)\"/i\n  ];\n  \n  for (const pattern of patterns) {\n    const match = html.match(pattern);\n    if (match && match[1]) {\n      imageUrl = match[1];\n      // Ensure HTTPS\n      if (imageUrl.startsWith('//')) {\n        imageUrl = 'https:' + imageUrl;\n      }\n      break;\n    }\n  }\n} catch (error) {\n  console.log('Image extraction failed:', error.message);\n}\n\n// Generate placeholder if no image found\nif (!imageUrl) {\n  const encodedName = encodeURIComponent(originalData.name);\n  imageUrl = `https://placehold.co/600x600/1e293b/94a3b8?text=${encodedName}`;\n}\n\nreturn [{\n  json: {\n    ...originalData,\n    imageUrl: imageUrl,\n    imageSource: imageUrl.includes('coupangcdn') ? 'coupang' : 'placeholder'\n  }\n}];"
+      },
+      "id": "extract-image",
+      "name": "🖼️ 이미지 URL 추출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 400],
+      "notes": "HTML에서 Open Graph 이미지 또는 상품 이미지 URL을 추출합니다.\n실패시 placeholder 이미지를 사용합니다."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Skip image fetch - use placeholder\nconst input = $input.first().json;\nconst encodedName = encodeURIComponent(input.name);\n\nreturn [{\n  json: {\n    ...input,\n    imageUrl: `https://placehold.co/600x600/1e293b/94a3b8?text=${encodedName}`,\n    imageSource: 'placeholder'\n  }\n}];"
+      },
+      "id": "skip-image-fetch",
+      "name": "Placeholder 사용",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 600]
+    },
+    {
+      "parameters": {},
+      "id": "merge-image-data",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1300, 500],
+      "parameters_": {
+        "mode": "combine",
+        "options": {}
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build professional review prompt for Gemini\nconst input = $input.first().json;\n\nconst categoryMap = {\n  'electronics': '가전/디지털',\n  'home': '생활/가구',\n  'beauty': '뷰티',\n  'fashion': '패션'\n};\n\nconst categoryName = categoryMap[input.category] || input.category;\nconst priceStr = input.price.toLocaleString();\n\nconst prompt = `당신은 10년 경력의 전문 제품 리뷰어입니다. IT/가전 전문 매체에서 일하며, 수천 건의 제품 리뷰를 작성해온 경험이 있습니다.\n\n다음 제품에 대해 **실제 사용 경험을 바탕으로 한 것처럼** 전문적이고 상세한 리뷰를 작성해주세요.\n\n---\n## 제품 정보\n- **제품명**: ${input.name}\n- **카테고리**: ${categoryName}\n- **가격**: ${priceStr}원\n- **주요 특징**: ${input.productFeatures || '(정보 없음)'}\n- **평점**: ${input.rating}/5점\n\n---\n## 작성 가이드라인\n\n### 1. 제품 소개 (250자 이상)\n- 이 제품이 시장에서 어떤 위치에 있는지\n- 어떤 사용자를 타겟으로 하는지\n- 경쟁 제품군 대비 특징\n\n### 2. 디자인 및 빌드 퀄리티 (200자 이상)\n- 외관 디자인 평가\n- 마감 품질\n- 휴대성 또는 설치 편의성\n\n### 3. 핵심 기능 상세 분석 (각 기능별 150자 이상)\n- 주요 스펙별 실사용 체감\n- 광고 문구와 실제 성능 비교\n- 숨겨진 장점이나 아쉬운 점\n\n### 4. 실사용 시나리오 (300자 이상)\n- 구체적인 사용 상황 예시\n- 일주일 사용 후기 형식\n- 일상에서의 활용도\n\n### 5. 경쟁 제품 비교 (200자 이상)\n- 비슷한 가격대 제품과 비교\n- 이 제품만의 차별점\n- 다른 제품을 선택해야 하는 경우\n\n### 6. 가성비 분석 (150자 이상)\n- ${priceStr}원의 가치가 있는가\n- 가격 대비 만족도\n- 세일/프로모션 구매 추천 여부\n\n### 7. 추천 대상 & 비추천 대상\n- 이 제품이 딱 맞는 사람\n- 다른 제품을 고려해야 할 사람\n\n### 8. 최종 평가 (200자 이상)\n- 종합 점수의 근거\n- 구매 권장 여부\n- 한 줄 요약\n\n---\n## 출력 형식 (JSON)\n\n다음 JSON 형식으로 정확히 응답해주세요:\n\n\\`\\`\\`json\n{\n  \"description\": \"60자 이내의 한 줄 제품 설명 (핵심 특징 강조)\",\n  \"specs\": [\n    {\"label\": \"스펙명1\", \"value\": \"스펙값1\"},\n    {\"label\": \"스펙명2\", \"value\": \"스펙값2\"},\n    {\"label\": \"스펙명3\", \"value\": \"스펙값3\"},\n    {\"label\": \"스펙명4\", \"value\": \"스펙값4\"},\n    {\"label\": \"스펙명5\", \"value\": \"스펙값5\"}\n  ],\n  \"pros\": [\n    \"구체적인 장점 1 (20자 이상)\",\n    \"구체적인 장점 2\",\n    \"구체적인 장점 3\",\n    \"구체적인 장점 4\"\n  ],\n  \"cons\": [\n    \"솔직한 단점 1\",\n    \"솔직한 단점 2\"\n  ],\n  \"content\": \"## 제품 소개\\\\n\\\\n(마크다운 형식의 전체 리뷰 본문...)\"\n}\n\\`\\`\\`\n\n---\n## 중요 지침\n- 과장된 광고 문구 금지 (\"혁신적\", \"최고의\" 등)\n- 구체적인 수치와 비교 사용\n- 단점도 솔직하게 언급\n- 실제 사용자 관점 유지\n- 마크다운 ## 헤딩으로 섹션 구분`;\n\nreturn [{\n  json: {\n    ...input,\n    geminiPrompt: prompt\n  }\n}];"
+      },
+      "id": "build-prompt",
+      "name": "🤖 AI 프롬프트 생성",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1520, 500],
+      "notes": "전문 리뷰어 페르소나와 상세한 가이드라인이 포함된 프롬프트를 생성합니다."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": {{ JSON.stringify($json.geminiPrompt) }}\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.8,\n    \"topK\": 40,\n    \"topP\": 0.95,\n    \"maxOutputTokens\": 8192,\n    \"responseMimeType\": \"application/json\"\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "gemini-request",
+      "name": "✨ Gemini AI 리뷰 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1740, 500],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "gemini-api-key",
+          "name": "Gemini API Key"
+        }
+      },
+      "notes": "Gemini 2.0 Flash로 전문적인 리뷰 생성\n\n⚙️ Credential 설정:\n1. HTTP Query Auth 생성\n2. Name: 'key'\n3. Value: Google AI Studio에서 발급받은 API 키"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse and validate Gemini AI response\nconst input = $input.first().json;\nconst originalData = $('🤖 AI 프롬프트 생성').first().json;\nlet aiContent;\n\ntry {\n  const responseText = input.body?.candidates?.[0]?.content?.parts?.[0]?.text;\n  \n  if (!responseText) {\n    throw new Error('Empty Gemini response');\n  }\n  \n  // Clean JSON if wrapped in code blocks\n  let cleanJson = responseText.trim();\n  if (cleanJson.startsWith('```json')) {\n    cleanJson = cleanJson.slice(7);\n  }\n  if (cleanJson.startsWith('```')) {\n    cleanJson = cleanJson.slice(3);\n  }\n  if (cleanJson.endsWith('```')) {\n    cleanJson = cleanJson.slice(0, -3);\n  }\n  \n  aiContent = JSON.parse(cleanJson.trim());\n  \n  // Validate required fields\n  if (!aiContent.content || !aiContent.specs || !aiContent.pros) {\n    throw new Error('Missing required fields in AI response');\n  }\n  \n} catch (error) {\n  console.error('AI parsing error:', error.message);\n  \n  // Fallback content\n  aiContent = {\n    description: `${originalData.name} - 품질과 가성비를 갖춘 추천 제품`,\n    specs: [\n      { label: '카테고리', value: originalData.category },\n      { label: '가격대', value: `${originalData.price.toLocaleString()}원` },\n      { label: '평점', value: `${originalData.rating}/5` },\n      { label: '배송', value: '로켓배송 가능' }\n    ],\n    pros: [\n      '검증된 품질',\n      '합리적인 가격',\n      '빠른 배송',\n      '좋은 사용자 평가'\n    ],\n    cons: [\n      '인기 상품으로 일시 품절 가능'\n    ],\n    content: `## 제품 소개\\n\\n${originalData.name}은(는) 많은 사용자들에게 사랑받는 제품입니다. 가격 대비 우수한 품질로 높은 만족도를 보이고 있습니다.\\n\\n## 주요 특징\\n\\n${originalData.productFeatures || '다양한 기능을 갖추고 있습니다.'}\\n\\n## 총평\\n\\n${originalData.rating}/5점의 평점이 말해주듯, 이 제품은 충분히 구매 가치가 있습니다. 특히 가성비를 중시하는 분들께 추천드립니다.`\n  };\n}\n\n// Build final product data\nconst productData = {\n  productId: originalData.productId,\n  name: originalData.name,\n  price: originalData.price,\n  imageUrl: originalData.imageUrl,\n  category: originalData.category,\n  affiliateUrl: originalData.affiliateUrl,\n  rating: originalData.rating,\n  description: aiContent.description,\n  specs: aiContent.specs,\n  pros: aiContent.pros,\n  cons: aiContent.cons,\n  content: aiContent.content,\n  autoDeploy: originalData.autoDeploy,\n  dryRun: originalData.dryRun,\n  _meta: {\n    aiGenerated: true,\n    imageSource: originalData.imageSource,\n    generatedAt: new Date().toISOString()\n  }\n};\n\nreturn [{ json: productData }];"
+      },
+      "id": "parse-ai-response",
+      "name": "📋 AI 응답 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1960, 500],
+      "notes": "Gemini 응답을 파싱하고 제품 데이터 구조로 변환합니다.\n실패시 기본 콘텐츠로 폴백합니다."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://content-api:3001/api/products",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "create-product",
+      "name": "💾 제품 저장 (API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2180, 500],
+      "notes": "Content API로 제품 데이터 전송\n\nAPI 작업:\n1. products.json에 저장\n2. autoDeploy=true면 Git 커밋 & 푸시\n3. GitHub Actions가 배포 실행"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-success",
+              "leftValue": "={{ $json.body?.success || $json.statusCode === 201 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-success",
+      "name": "성공 확인",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [2400, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst product = response.body?.product || {};\n\nconst slugName = product.name?.replace(/\\s+/g, '-') || 'unknown';\nconst previewUrl = `https://bichonhenry.cloud/review/${encodeURIComponent(slugName)}/`;\n\nreturn [{\n  json: {\n    status: '✅ 성공',\n    message: `AI 리뷰가 생성되어 배포되었습니다!`,\n    product: {\n      id: product.productId,\n      name: product.name,\n      category: product.category,\n      price: product.price\n    },\n    aiGenerated: true,\n    previewUrl: previewUrl,\n    note: 'GitHub Actions 배포 완료까지 약 2분 소요',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "success-output",
+      "name": "✅ 성공 결과",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2620, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nlet errorMessage = 'Unknown error';\n\ntry {\n  if (input.body?.error) {\n    errorMessage = input.body.message || input.body.error;\n  } else if (input.statusCode && input.statusCode >= 400) {\n    errorMessage = `HTTP ${input.statusCode}: ${input.statusMessage || 'Request failed'}`;\n  }\n} catch (e) {\n  errorMessage = 'Failed to parse error response';\n}\n\nreturn [{\n  json: {\n    status: '❌ 실패',\n    error: errorMessage,\n    statusCode: input.statusCode,\n    troubleshooting: [\n      'productId가 이미 존재하는지 확인',\n      'Content API 서버가 실행 중인지 확인',\n      '필수 필드(name, price, category)가 모두 입력되었는지 확인'\n    ],\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "error-output",
+      "name": "❌ 에러 결과",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2620, 600]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{"node": "📝 제품 정보 입력", "type": "main", "index": 0}]]
+    },
+    "Schedule Trigger": {
+      "main": [[{"node": "📝 제품 정보 입력", "type": "main", "index": 0}]]
+    },
+    "📝 제품 정보 입력": {
+      "main": [[{"node": "이미지 가져오기?", "type": "main", "index": 0}]]
+    },
+    "이미지 가져오기?": {
+      "main": [
+        [{"node": "🔍 쿠팡 페이지 가져오기", "type": "main", "index": 0}],
+        [{"node": "Placeholder 사용", "type": "main", "index": 0}]
+      ]
+    },
+    "🔍 쿠팡 페이지 가져오기": {
+      "main": [[{"node": "🖼️ 이미지 URL 추출", "type": "main", "index": 0}]]
+    },
+    "🖼️ 이미지 URL 추출": {
+      "main": [[{"node": "Merge", "type": "main", "index": 0}]]
+    },
+    "Placeholder 사용": {
+      "main": [[{"node": "Merge", "type": "main", "index": 1}]]
+    },
+    "Merge": {
+      "main": [[{"node": "🤖 AI 프롬프트 생성", "type": "main", "index": 0}]]
+    },
+    "🤖 AI 프롬프트 생성": {
+      "main": [[{"node": "✨ Gemini AI 리뷰 생성", "type": "main", "index": 0}]]
+    },
+    "✨ Gemini AI 리뷰 생성": {
+      "main": [[{"node": "📋 AI 응답 파싱", "type": "main", "index": 0}]]
+    },
+    "📋 AI 응답 파싱": {
+      "main": [[{"node": "💾 제품 저장 (API)", "type": "main", "index": 0}]]
+    },
+    "💾 제품 저장 (API)": {
+      "main": [[{"node": "성공 확인", "type": "main", "index": 0}]]
+    },
+    "성공 확인": {
+      "main": [
+        [{"node": "✅ 성공 결과", "type": "main", "index": 0}],
+        [{"node": "❌ 에러 결과", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "techblog-ai-pipeline-v3"
+  },
+  "tags": [
+    {"name": "gemini-ai"},
+    {"name": "image-scraping"},
+    {"name": "production-ready"}
+  ]
+}

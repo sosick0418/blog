@@ -63,7 +63,7 @@ productsRouter.get('/:id', (req, res, next) => {
 
 /**
  * POST /api/products
- * Create a new product (without LLM generation)
+ * Create a new product (with optional auto-deploy)
  */
 productsRouter.post('/', (req, res, next) => {
   try {
@@ -79,7 +79,9 @@ productsRouter.post('/', (req, res, next) => {
       specs,
       pros,
       cons,
-      content
+      content,
+      autoDeploy = true,
+      dryRun = false
     } = req.body;
 
     // Validation
@@ -106,9 +108,25 @@ productsRouter.post('/', (req, res, next) => {
       content: content || ''
     });
 
+    console.log(`[Products] Created: ${product.productId}`);
+
+    // Auto-deploy if enabled
+    let deployResult = null;
+    if (autoDeploy) {
+      console.log('[Products] Auto-deploying...');
+      try {
+        deployResult = deploy(name, dryRun);
+        console.log('[Products] Deploy result:', deployResult);
+      } catch (gitError) {
+        console.error('[Products] Deploy failed:', gitError.message);
+        deployResult = { deployed: false, error: gitError.message };
+      }
+    }
+
     res.status(201).json({
       success: true,
-      product
+      product,
+      deploy: deployResult
     });
   } catch (error) {
     next(error);

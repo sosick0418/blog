@@ -1,0 +1,370 @@
+{
+  "name": "Content API Pipeline v2 (Gemini AI)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 500],
+      "disabled": true,
+      "notes": "Daily at 9:00 AM. Enable when ready for production."
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "productId",
+              "value": "sample-001"
+            },
+            {
+              "name": "name",
+              "value": "테스트 제품"
+            },
+            {
+              "name": "category",
+              "value": "electronics"
+            },
+            {
+              "name": "affiliateUrl",
+              "value": "https://link.coupang.com/re/AFFSDP?lptag=TEST&pageKey=sample-001"
+            },
+            {
+              "name": "imageUrl",
+              "value": ""
+            },
+            {
+              "name": "productFeatures",
+              "value": "블루투스 5.0, 노이즈캔슬링, 20시간 재생, IPX4 방수"
+            }
+          ],
+          "number": [
+            {
+              "name": "price",
+              "value": 29900
+            },
+            {
+              "name": "rating",
+              "value": 4.5
+            }
+          ],
+          "boolean": [
+            {
+              "name": "autoDeploy",
+              "value": true
+            },
+            {
+              "name": "dryRun",
+              "value": false
+            }
+          ]
+        }
+      },
+      "id": "set-product-data",
+      "name": "Set Product Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [500, 400],
+      "notes": "Configure product data here.\n\nRequired:\n- productId: Coupang product ID\n- name: Product name (Korean)\n- price: Price in KRW\n- category: electronics | home | beauty\n- affiliateUrl: Coupang affiliate link\n- productFeatures: Key features for AI review\n\nOptional:\n- imageUrl: Product image URL\n- rating: 1-5 (supports decimals like 4.5)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build prompt for Gemini AI review generation\nconst input = $input.first().json;\n\nconst categoryMap = {\n  'electronics': '가전/디지털',\n  'home': '생활/가구',\n  'beauty': '뷰티',\n  'fashion': '패션'\n};\n\nconst categoryName = categoryMap[input.category] || input.category;\n\nconst prompt = `당신은 대한민국 최고의 제품 리뷰어입니다. 다음 제품에 대해 전문적이고 신뢰감 있는 상세 리뷰를 작성해주세요.\n\n## 제품 정보\n- 제품명: ${input.name}\n- 카테고리: ${categoryName}\n- 가격: ${input.price.toLocaleString()}원\n- 주요 특징: ${input.productFeatures || '정보 없음'}\n- 평점: ${input.rating}/5\n\n## 작성 요구사항\n\n1. **제품 소개** (200자 이상)\n   - 이 제품이 어떤 제품인지 명확하게 설명\n   - 타겟 고객층 언급\n   - 시장에서의 포지션\n\n2. **핵심 특징 분석** (각 특징별 100자 이상)\n   - 주요 스펙과 기능을 상세히 설명\n   - 실제 사용 시 체감되는 장점\n   - 경쟁 제품 대비 차별점\n\n3. **실사용 리뷰** (300자 이상)\n   - 실제 사용자 관점에서의 경험\n   - 일상에서 어떻게 활용되는지\n   - 사용하면서 느낀 점\n\n4. **장단점 분석**\n   - 장점 3-5개 (각각 구체적으로)\n   - 단점 1-2개 (솔직하게)\n\n5. **가성비 분석** (100자 이상)\n   - 가격 대비 가치 평가\n   - 비슷한 가격대 경쟁 제품과 비교\n\n6. **추천 대상** (100자 이상)\n   - 이 제품이 특히 잘 맞는 사람\n   - 구매를 고려해야 할 사람\n\n7. **총평** (150자 이상)\n   - 종합적인 평가\n   - 구매 권장도\n\n## 출력 형식\n마크다운 형식으로 작성하되, ## 제목 형태로 섹션을 구분해주세요.\n광고 같은 과장된 표현은 피하고, 전문가가 직접 테스트한 것처럼 구체적이고 신뢰감 있게 작성해주세요.\n\n## 추가 요청\n- 스펙 정보 배열 (specs): [{label: string, value: string}] 형태로 4-6개\n- 장점 배열 (pros): 3-5개\n- 단점 배열 (cons): 1-2개\n- 한 줄 설명 (description): 50자 이내\n\n다음 JSON 형식으로 응답해주세요:\n{\n  \"description\": \"한 줄 제품 설명\",\n  \"specs\": [{\"label\": \"스펙명\", \"value\": \"스펙값\"}, ...],\n  \"pros\": [\"장점1\", \"장점2\", ...],\n  \"cons\": [\"단점1\", ...],\n  \"content\": \"## 제품 소개\\\\n...전체 마크다운 리뷰 본문...\"\n}`;\n\nreturn [{\n  json: {\n    ...input,\n    geminiPrompt: prompt\n  }\n}];"
+      },
+      "id": "build-prompt",
+      "name": "Build AI Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 400],
+      "notes": "Builds a detailed prompt for Gemini AI to generate professional product review content."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": {{ JSON.stringify($json.geminiPrompt) }}\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"topK\": 40,\n    \"topP\": 0.95,\n    \"maxOutputTokens\": 4096,\n    \"responseMimeType\": \"application/json\"\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "gemini-request",
+      "name": "Gemini AI Generate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, 400],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "gemini-api-key",
+          "name": "Gemini API Key"
+        }
+      },
+      "notes": "Calls Gemini API to generate professional review content.\n\nCredential setup:\n1. Create HTTP Query Auth credential\n2. Name: 'key'\n3. Value: Your Gemini API key from Google AI Studio"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Gemini response and merge with product data\nconst input = $input.first().json;\nlet aiContent;\n\ntry {\n  // Extract text from Gemini response\n  const responseText = input.body?.candidates?.[0]?.content?.parts?.[0]?.text;\n  \n  if (!responseText) {\n    throw new Error('No response from Gemini');\n  }\n  \n  // Parse JSON from response\n  aiContent = JSON.parse(responseText);\n} catch (error) {\n  // Fallback content if AI fails\n  aiContent = {\n    description: `${input.name} - 품질과 가성비를 모두 갖춘 추천 제품`,\n    specs: [\n      { label: '카테고리', value: input.category },\n      { label: '가격', value: `${input.price.toLocaleString()}원` }\n    ],\n    pros: ['뛰어난 품질', '합리적인 가격', '빠른 배송'],\n    cons: ['인기 상품으로 품절 가능성'],\n    content: `## 제품 소개\\n\\n${input.name}은(는) 많은 사용자들에게 사랑받는 제품입니다.\\n\\n## 총평\\n\\n이 제품을 찾고 계신다면 강력히 추천드립니다.`\n  };\n}\n\n// Build final product data for API\nconst productData = {\n  productId: input.productId,\n  name: input.name,\n  price: input.price,\n  imageUrl: input.imageUrl || '',\n  category: input.category,\n  affiliateUrl: input.affiliateUrl,\n  rating: input.rating || 4,\n  description: aiContent.description,\n  specs: aiContent.specs,\n  pros: aiContent.pros,\n  cons: aiContent.cons,\n  content: aiContent.content,\n  autoDeploy: input.autoDeploy,\n  dryRun: input.dryRun\n};\n\nreturn [{ json: productData }];"
+      },
+      "id": "parse-ai-response",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1160, 400],
+      "notes": "Parses Gemini AI response and builds final product data with AI-generated content."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://content-api:3001/api/products",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "http-create-product",
+      "name": "Create Product via API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 400],
+      "notes": "Sends AI-generated product data to Content API.\n\nAPI will:\n1. Validate data\n2. Add to products.json\n3. Git commit and push (if autoDeploy=true)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-success",
+              "leftValue": "={{ $json.body.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-success",
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1600, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json.body;\n\nreturn [{\n  json: {\n    status: 'success',\n    message: `✅ AI 리뷰 생성 완료: ${response.product.name}`,\n    productId: response.product.productId,\n    productName: response.product.name,\n    category: response.product.category,\n    contentGenerated: true,\n    deployed: response.product.autoDeploy && !response.product.dryRun,\n    timestamp: new Date().toISOString(),\n    previewUrl: `https://bichonhenry.cloud/review/${encodeURIComponent(response.product.name.replace(/\\s+/g, '-'))}/`\n  }\n}];"
+      },
+      "id": "success-handler",
+      "name": "Success Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1820, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nlet errorCode = 'API_ERROR';\nlet errorMessage = 'Unknown error';\n\ntry {\n  if (input.body && input.body.error) {\n    errorCode = input.body.error;\n    errorMessage = input.body.message || errorCode;\n  } else if (input.statusCode !== 200 && input.statusCode !== 201) {\n    errorCode = `HTTP_${input.statusCode}`;\n    errorMessage = `API returned status ${input.statusCode}`;\n  }\n} catch (e) {\n  errorMessage = 'Failed to parse API response';\n}\n\nreturn [{\n  json: {\n    status: 'error',\n    errorCode: errorCode,\n    message: `❌ ${errorMessage}`,\n    statusCode: input.statusCode,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1820, 500]
+    },
+    {
+      "parameters": {},
+      "id": "success-complete",
+      "name": "Success Complete",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [2040, 300],
+      "notes": "🎉 Success! AI-generated review deployed.\n\nThe product page with professional review content is now live at:\nhttps://bichonhenry.cloud/review/[product-name]/\n\nGitHub Actions will complete deployment in ~2 minutes."
+    },
+    {
+      "parameters": {},
+      "id": "error-logged",
+      "name": "Error Logged",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [2040, 500],
+      "notes": "⚠️ Error occurred. Check execution details.\n\nCommon issues:\n- GEMINI_ERROR: API key invalid or quota exceeded\n- VALIDATION_ERROR: Missing required fields\n- DUPLICATE_PRODUCT: Product ID already exists\n- GIT_PUSH_FAILED: Git authentication issue"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Product Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Product Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Product Data": {
+      "main": [
+        [
+          {
+            "node": "Build AI Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build AI Prompt": {
+      "main": [
+        [
+          {
+            "node": "Gemini AI Generate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini AI Generate": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Create Product via API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Product via API": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Success Handler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success Handler": {
+      "main": [
+        [
+          {
+            "node": "Success Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Error Logged",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "techblog-gemini-pipeline"
+  },
+  "tags": [
+    {
+      "name": "gemini-ai",
+      "createdAt": "2026-01-16T00:00:00.000Z",
+      "updatedAt": "2026-01-16T00:00:00.000Z"
+    },
+    {
+      "name": "content-generation",
+      "createdAt": "2026-01-16T00:00:00.000Z",
+      "updatedAt": "2026-01-16T00:00:00.000Z"
+    }
+  ]
+}
