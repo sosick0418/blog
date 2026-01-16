@@ -23,9 +23,9 @@ export default function Footer() {
               <span className="text-xl font-bold text-white">테크리뷰</span>
             </Link>
             <p className="text-[var(--foreground-muted)] max-w-md leading-relaxed">
-              최신 제품의 솔직한 리뷰와 구매 가이드를 제공합니다.
-              가전, 디지털, 뷰티 등 다양한 카테고리의 제품을 꼼꼼하게 분석하여
-              여러분의 현명한 소비를 돕습니다.
+              최신 제품의 솔직한 리뷰와 구매 가이드를 제공합니다. 가전, 디지털,
+              뷰티 등 다양한 카테고리의 제품을 꼼꼼하게 분석하여 여러분의 현명한
+              소비를 돕습니다.
             </p>
           </div>
 
@@ -49,7 +49,7 @@ export default function Footer() {
           </div>
 
           {/* Legal */}
-          <div>
+          {/* <div>
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
               정보
             </h3>
@@ -79,7 +79,7 @@ export default function Footer() {
                 </Link>
               </li>
             </ul>
-          </div>
+          </div> */}
         </div>
 
         {/* Bottom */}
@@ -91,11 +91,20 @@ export default function Footer() {
 
             {/* Affiliate Disclosure */}
             <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--background-elevated)] border border-[var(--border-default)]">
-              <svg className="w-4 h-4 text-[var(--accent-cta)]" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              <svg
+                className="w-4 h-4 text-[var(--accent-cta)]"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clipRule="evenodd"
+                />
               </svg>
               <span className="text-xs text-[var(--foreground-muted)]">
-                이 페이지는 쿠팡 파트너스 활동의 일환으로, 일정액의 수수료를 제공받습니다.
+                이 페이지는 쿠팡 파트너스 활동의 일환으로, 일정액의 수수료를
+                제공받습니다.
               </span>
             </div>
           </div>
