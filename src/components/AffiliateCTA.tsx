@@ -16,7 +16,7 @@ export default function AffiliateCTA({
   children,
 }: AffiliateCTAProps) {
   const baseStyles =
-    "relative inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-300 overflow-hidden group";
+    "relative inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-300 overflow-hidden group active:scale-[0.97]";
 
   const variants = {
     primary: `
@@ -67,7 +67,7 @@ export default function AffiliateCTA({
     >
       {/* Shimmer Effect */}
       {variant === "primary" && (
-        <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-600 ease-out bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
       )}
 
       {/* Icon */}
@@ -141,10 +141,10 @@ export function LargeAffiliateCTA({ href, productName, price }: { href: string; 
           href={href}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-[var(--accent-cta)] to-orange-400 text-white font-bold text-lg hover:from-[var(--accent-cta-hover)] hover:to-orange-500 transition-all duration-300 hover:shadow-[0_0_40px_-10px_rgba(249,115,22,0.6)] animate-pulse-glow"
+          className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-[var(--accent-cta)] to-orange-400 text-white font-bold text-lg overflow-hidden hover:from-[var(--accent-cta-hover)] hover:to-orange-500 transition-all duration-300 hover:shadow-[0_0_50px_-10px_rgba(249,115,22,0.6)] hover:scale-[1.02] active:scale-[0.98] animate-pulse-glow"
         >
           {/* Shimmer */}
-          <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-xl" />
+          <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-600 ease-out bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
 
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />

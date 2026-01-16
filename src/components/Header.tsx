@@ -47,12 +47,16 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* Search & Actions */}
-          <div className="hidden lg:flex items-center gap-4">
-            {/* Search Button */}
-            <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--background-elevated)] text-[var(--foreground-muted)] hover:text-white transition-colors duration-200 group">
+          {/* CTA */}
+          <div className="hidden lg:flex items-center">
+            <a
+              href="#reviews"
+              className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--accent-primary)] to-blue-500 text-white text-sm font-semibold overflow-hidden hover:shadow-[0_0_25px_-5px_rgba(59,130,246,0.5)] transition-all duration-300"
+            >
+              <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-out bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+              <span className="relative z-10">리뷰 보기</span>
               <svg
-                className="w-4 h-4"
+                className="relative z-10 w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -61,14 +65,10 @@ export default function Header() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  d="M9 5l7 7-7 7"
                 />
               </svg>
-              <span className="text-sm">검색</span>
-              <kbd className="hidden sm:inline-flex h-5 px-1.5 items-center gap-1 rounded bg-[var(--border-default)] text-[10px] font-medium text-[var(--foreground-subtle)]">
-                <span className="text-xs">⌘</span>K
-              </kbd>
-            </button>
+            </a>
           </div>
 
           {/* Mobile Menu Button */}

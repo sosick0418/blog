@@ -84,12 +84,13 @@ export default function Hero() {
           >
             <a
               href="#reviews"
-              className="group relative inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[var(--accent-primary)] to-blue-400 text-white font-semibold text-lg hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.6)] transition-all duration-300"
+              className="group relative inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[var(--accent-primary)] to-blue-500 text-white font-semibold text-lg overflow-hidden hover:shadow-[0_0_50px_-12px_rgba(59,130,246,0.7)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
             >
-              <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-xl" />
-              <span className="relative">리뷰 보러가기</span>
+              {/* Shimmer - hidden by overflow */}
+              <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
+              <span className="relative z-10">리뷰 보러가기</span>
               <svg
-                className="w-5 h-5 transition-transform group-hover:translate-x-1"
+                className="relative z-10 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -105,11 +106,11 @@ export default function Hero() {
 
             <a
               href="/category/electronics"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[var(--background-elevated)] border border-[var(--border-subtle)] text-white font-semibold text-lg hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-all duration-300"
+              className="group relative inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[var(--background-elevated)]/80 backdrop-blur-sm border border-[var(--border-subtle)] text-[var(--foreground-muted)] font-semibold text-lg overflow-hidden hover:bg-[var(--background-elevated)] hover:border-[var(--accent-primary)]/50 hover:text-white hover:shadow-[0_0_30px_-10px_rgba(59,130,246,0.3)] active:scale-[0.98] transition-all duration-300"
             >
-              <span>카테고리 탐색</span>
+              <span className="relative z-10">카테고리 탐색</span>
               <svg
-                className="w-5 h-5"
+                className="relative z-10 w-5 h-5 transition-transform duration-300 group-hover:rotate-90"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
