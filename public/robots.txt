@@ -1,0 +1,14 @@
+# robots.txt for https://bichonhenry.cloud
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Yeti
+Allow: /
+
+Sitemap: https://bichonhenry.cloud/sitemap.xml
+Host: https://bichonhenry.cloud

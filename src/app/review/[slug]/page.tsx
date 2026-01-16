@@ -48,6 +48,8 @@ export async function generateStaticParams() {
   }));
 }
 
+const siteUrl = "https://bichonhenry.cloud";
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug: rawSlug } = await params;
   const slug = decodeURIComponent(rawSlug);
@@ -59,13 +61,74 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     };
   }
 
+  const categoryName = categoryNames[product.category] || product.category;
+
   return {
-    title: `${product.name} 리뷰`,
-    description: product.description,
+    title: `${product.name} 리뷰 - ${categoryName} 추천`,
+    description: `${product.name} 상세 리뷰. ${product.description} 쿠팡 최저가 ${product.price.toLocaleString()}원, 장단점 분석, 구매 가이드.`,
+    keywords: [product.name, categoryName, "리뷰", "쿠팡", "추천", "최저가"],
+    alternates: {
+      canonical: `${siteUrl}/review/${slugify(product.name)}/`,
+    },
     openGraph: {
+      type: "article",
       title: `${product.name} 리뷰 | 테크리뷰`,
+      description: `${product.description} - 쿠팡 최저가 ${product.price.toLocaleString()}원`,
+      url: `${siteUrl}/review/${slugify(product.name)}/`,
+      images: [
+        {
+          url: product.imageUrl,
+          width: 600,
+          height: 600,
+          alt: product.name,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${product.name} 리뷰`,
       description: product.description,
       images: [product.imageUrl],
+    },
+  };
+}
+
+// Generate Product JSON-LD structured data
+function generateProductJsonLd(product: Product) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: product.imageUrl,
+    offers: {
+      "@type": "Offer",
+      price: product.price,
+      priceCurrency: "KRW",
+      availability: "https://schema.org/InStock",
+      url: product.affiliateUrl || `${siteUrl}/review/${slugify(product.name)}/`,
+    },
+    ...(product.rating && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: product.rating,
+        bestRating: 5,
+        worstRating: 1,
+        ratingCount: 1,
+      },
+    }),
+    review: {
+      "@type": "Review",
+      reviewRating: {
+        "@type": "Rating",
+        ratingValue: product.rating || 4,
+        bestRating: 5,
+      },
+      author: {
+        "@type": "Organization",
+        name: "테크리뷰",
+      },
+      reviewBody: product.content?.split('\n')[0] || product.description,
     },
   };
 }
@@ -81,9 +144,14 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
 
   const colors = categoryColors[product.category] || categoryColors.electronics;
   const categoryName = categoryNames[product.category] || product.category;
+  const productJsonLd = generateProductJsonLd(product);
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <Header />
 
       <main className="pt-24">
