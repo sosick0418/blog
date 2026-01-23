@@ -10,6 +10,7 @@ const categoryColors: Record<string, { bg: string; text: string; border: string 
   home: { bg: "bg-cyan-500/10", text: "text-cyan-400", border: "border-cyan-500/30" },
   beauty: { bg: "bg-pink-500/10", text: "text-pink-400", border: "border-pink-500/30" },
   fashion: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/30" },
+  luggage: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30" },
 };
 
 const categoryNames: Record<string, string> = {
@@ -17,6 +18,7 @@ const categoryNames: Record<string, string> = {
   home: "생활/가구",
   beauty: "뷰티",
   fashion: "패션",
+  luggage: "여행/캐리어",
 };
 
 function formatPrice(price: number): string {

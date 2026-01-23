@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { Header, Footer, Hero, ProductCard } from "@/components";
 import { products, getProductsByCategory } from "@/data/products";
-import { categories } from "@/data/site";
+import { categories, siteConfig } from "@/data/site";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: siteConfig.url,
+  },
+};
 
 export default function Home() {
   // Count products per category

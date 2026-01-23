@@ -31,7 +31,13 @@ function slugify(name) {
 // Generate sitemap.xml
 function generateSitemap() {
   const today = new Date().toISOString().split("T")[0];
-  const categories = ["electronics", "home", "beauty"];
+  const categories = Array.from(
+    new Set(
+      products
+        .map((product) => product.category)
+        .filter((category) => typeof category === "string" && category.length > 0)
+    )
+  ).sort();
 
   let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

@@ -1,6 +1,6 @@
 import { Header, Footer, ProductCard } from "@/components";
 import { getProductsByCategory } from "@/data/products";
-import { categories } from "@/data/site";
+import { categories, siteConfig } from "@/data/site";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -23,6 +23,9 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   return {
     title: `${categoryData.name} 리뷰`,
     description: `${categoryData.name} 카테고리의 제품 리뷰`,
+    alternates: {
+      canonical: `${siteConfig.url}/category/${category}/`,
+    },
   };
 }
 

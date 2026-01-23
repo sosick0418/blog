@@ -18,9 +18,6 @@ export const metadata: Metadata = {
     email: false,
     telephone: false,
   },
-  alternates: {
-    canonical: siteUrl,
-  },
   openGraph: {
     type: "website",
     locale: "ko_KR",
@@ -89,7 +86,6 @@ export default function RootLayout({
   return (
     <html lang="ko" className="dark">
       <head>
-        <link rel="canonical" href={siteUrl} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
